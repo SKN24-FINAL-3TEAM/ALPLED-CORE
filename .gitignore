@@ -1,0 +1,6 @@
+.env
+__pycache__/
+json_temp/
+mmd_temp/
+output/
+qdrant_storage/
