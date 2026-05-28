@@ -1,1 +1,1 @@
-{"case_id":"ERD-001","task":"erd","requirement_json_path":"data/eval_inputs/requirement.json","expected_entities":["User","Role","Menu","Permission"],"expected_keywords":["PK","FK","관계"],"description":"요구사항 기반 ERD 생성"}
+{"case_id":"ERD-001","task":"erd","requirement_json_path":"data/requirements/requirement.json","use_llm":false,"use_mermaid":false,"fast_table":true,"expected_entities":["계좌","이체","거래"],"expected_keywords":["PK","FK","관계","컬럼"],"description":"요구사항 기반 ERD 생성"}

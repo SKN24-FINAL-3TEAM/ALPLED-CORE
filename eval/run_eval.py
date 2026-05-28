@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import sys
 import time
 import traceback
 from datetime import datetime
@@ -9,6 +10,10 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from eval.metrics import (
     calc_basic_score,
@@ -20,13 +25,12 @@ from eval.metrics import (
 )
 
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-
 TASK_RUNNERS = {
     "srs": "eval.runners.srs_runner",
     "erd": "eval.runners.erd_runner",
     "db": "eval.runners.db_runner",
     "architecture": "eval.runners.architecture_runner",
+    "interface": "eval.runners.interface_runner",
     "ts": "eval.runners.ts_runner",
 }
 
@@ -35,6 +39,7 @@ NAME_KEYS_BY_TASK = {
     "erd": {"entity_name", "table_name", "name"},
     "db": {"table_name", "column_name", "name"},
     "architecture": {"component_name", "name", "title"},
+    "interface": {"screen_name", "screen_id", "level4", "title", "name"},
     "ts": {"scenario_name", "test_case_name", "name", "title"},
 }
 
@@ -43,6 +48,7 @@ EXPECTED_NAME_KEYS_BY_TASK = {
     "erd": "expected_entities",
     "db": "expected_tables",
     "architecture": "expected_components",
+    "interface": "expected_screens",
     "ts": "expected_scenarios",
 }
 
@@ -72,7 +78,7 @@ def load_cases() -> list[dict[str, Any]]:
     case_dir = ROOT_DIR / os.getenv("EVAL_CASE_DIR", "eval/cases")
     task_names = [
         task.strip()
-        for task in os.getenv("EVAL_TASKS", "srs,erd,db,architecture,ts").split(",")
+        for task in os.getenv("EVAL_TASKS", "srs,erd,db,architecture,interface,ts").split(",")
         if task.strip()
     ]
 

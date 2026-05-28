@@ -1,0 +1,1 @@
+{"case_id":"UI-001","task":"interface","requirement_paths":"data/interface/requirements/사용자 요구사항 정의서 샘플.json","image_paths":["data/interface/prototypes/01_통합_AI_포털_대시보드.png"],"max_images":1,"expected_screens":["통합 AI 포털 대시보드"],"expected_keywords":["사용자 인터페이스 설계서","화면ID","화면명","메뉴경로","처리내용","button_markers"],"description":"사용자 요구사항 정의서와 프로토타입 이미지 기반 화면설계서 생성"}

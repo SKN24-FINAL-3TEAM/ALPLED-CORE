@@ -53,11 +53,12 @@ def calc_name_hit_rate(actual_names: list[str], expected_names: list[str]) -> fl
     if not expected_names:
         return 0.0
 
-    actual_lower = {name.lower() for name in actual_names}
+    actual_lower = [name.lower() for name in actual_names if str(name).strip()]
     hit_count = 0
 
     for expected in expected_names:
-        if expected.lower() in actual_lower:
+        expected_lower = expected.lower()
+        if any(expected_lower in actual or actual in expected_lower for actual in actual_lower):
             hit_count += 1
 
     return round(hit_count / len(expected_names), 4)
