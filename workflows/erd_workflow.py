@@ -151,8 +151,44 @@ def load_requirement_node(state: ErdWorkflowState) -> ErdWorkflowState:
 
 
 def build_erd_rag_context_node(state: ErdWorkflowState) -> ErdWorkflowState:
-    rag_context = build_erd_rag_context(state["system_context"])
-    return {"rag_context": rag_context}
+    if not state.get("use_rag", False):
+        return {
+            "rag_context": {
+                "domain": "skipped",
+                "db_standard_manual": [],
+                "public_standard_terms": [],
+                "public_standard_words": [],
+                "public_standard_domains": [],
+            }
+        }
+
+    try:
+        rag_context = build_erd_rag_context(state["system_context"])
+        return {"rag_context": rag_context}
+    except OSError as exc:
+        if getattr(exc, "errno", None) == 28:
+            return {
+                "rag_context": {
+                    "domain": "skipped_no_space",
+                    "db_standard_manual": [],
+                    "public_standard_terms": [],
+                    "public_standard_words": [],
+                    "public_standard_domains": [],
+                },
+                "validation_errors": [f"RAG 임베딩 로드 실패로 검색을 생략했습니다: {exc}"],
+            }
+        raise
+    except Exception as exc:
+        return {
+            "rag_context": {
+                "domain": "skipped_error",
+                "db_standard_manual": [],
+                "public_standard_terms": [],
+                "public_standard_words": [],
+                "public_standard_domains": [],
+            },
+            "validation_errors": [f"RAG 검색 실패로 검색을 생략했습니다: {exc}"],
+        }
 
 
 def generate_erd_candidate_node(state: ErdWorkflowState) -> ErdWorkflowState:

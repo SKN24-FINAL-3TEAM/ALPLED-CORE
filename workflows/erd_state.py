@@ -4,6 +4,7 @@ from typing import Any, Dict, List, TypedDict
 class ErdWorkflowState(TypedDict, total=False):
     requirement_json_path: str
     use_llm: bool
+    use_rag: bool
     use_mermaid: bool
     fast_table: bool
     output_json_path: str

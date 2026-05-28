@@ -92,10 +92,12 @@ def render_erd_tab() -> None:
         key="erd_req_path",
     )
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         use_llm = st.checkbox("LLM 사용", value=True, key="erd_use_llm")
     with col2:
+        use_rag = st.checkbox("RAG 보강 사용", value=False, key="erd_use_rag")
+    with col3:
         use_mermaid = st.checkbox("Mermaid 포함", value=True, key="erd_use_mermaid")
 
     output_json_path = st.text_input(
@@ -118,6 +120,7 @@ def render_erd_tab() -> None:
                 {
                     "requirement_json_path": uploaded_path or requirement_path,
                     "use_llm": use_llm,
+                    "use_rag": use_rag,
                     "use_mermaid": use_mermaid,
                     "fast_table": False,
                     "output_json_path": output_json_path,
