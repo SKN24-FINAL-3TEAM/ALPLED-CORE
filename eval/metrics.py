@@ -81,3 +81,31 @@ def calc_basic_score(
     score += keyword_hit_rate * 20
 
     return round(score, 2)
+
+
+def calc_binary_score(value: bool) -> float:
+    return 100.0 if value else 0.0
+
+
+def calc_speed_score(elapsed_sec: float, target_sec: float) -> float:
+    if target_sec <= 0:
+        return 0.0
+    if elapsed_sec <= 0:
+        return 100.0
+    return round(min(100.0, (target_sec / elapsed_sec) * 100), 2)
+
+
+def calc_rank_quality(rank: int | None, top_k: int) -> float:
+    if not rank or rank < 1 or top_k < 1:
+        return 0.0
+    if rank > top_k:
+        return 0.0
+    return round(((top_k - rank + 1) / top_k) * 100, 2)
+
+
+def calc_weighted_score(parts: list[tuple[float, float]]) -> float:
+    total_weight = sum(weight for _, weight in parts if weight > 0)
+    if total_weight <= 0:
+        return 0.0
+    score = sum(score * weight for score, weight in parts if weight > 0) / total_weight
+    return round(score, 2)
