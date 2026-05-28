@@ -1,0 +1,1 @@
+{"case_id":"ERD-001","task":"erd","requirement_json_path":"data/eval_inputs/requirement.json","expected_entities":["User","Role","Menu","Permission"],"expected_keywords":["PK","FK","관계"],"description":"요구사항 기반 ERD 생성"}

@@ -1,0 +1,1 @@
+{"case_id":"TS-001","task":"ts","requirement_json_path":"data/eval_inputs/requirement.json","ui_paths":["data/eval_inputs/ui_design.json"],"expected_keywords":["정상","예외","입력값","검증","기대결과"],"description":"요구사항과 UI 설계서 기반 통합시험 시나리오 생성"}

@@ -9,6 +9,11 @@ qdrant-client
 sentence-transformers
 langgraph
 streamlit
+langchain
+langchain-core
+langchain-community
+openai
+orjson
 
 # Mermaid PNG generation uses the Node.js package below, not pip:
 # npm install -g @mermaid-js/mermaid-cli

@@ -1,0 +1,1 @@
+{"case_id":"DB-001","task":"db","requirement_json_path":"data/eval_inputs/requirement.json","erd_docx_path":"data/eval_inputs/erd_design.docx","expected_tables":["TB_USER","TB_ROLE"],"expected_keywords":["PK","FK","VARCHAR","NUMBER"],"description":"요구사항과 ERD 기반 DB 설계서 생성"}
