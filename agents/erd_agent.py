@@ -5,17 +5,14 @@ from pathlib import Path
 from datetime import date
 from typing import Dict, Any
 
-import requests
 from dotenv import load_dotenv
 
+from services.llm_client import call_llm
 from rag.rag_service import build_erd_rag_context, compact_rag_context
 
 load_dotenv()
 
-REQ_JSON_PATH = os.getenv("REQ_JSON_PATH", "./data/requirement.json")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
-LLM_MODEL_NAME = os.getenv("LLM_MODEL_NAME", "qwen3:4b")
-LLM_API_KEY = os.getenv("LLM_API_KEY", "EMPTY")
+REQ_JSON_PATH = os.getenv("REQ_JSON_PATH", "./data/requirements/requirement.json")
 
 
 def extract_json_from_text(text: str) -> Dict[str, Any]:
@@ -110,27 +107,12 @@ def call_qwen_for_erd(requirement: Dict[str, Any], rag_context: Dict[str, Any]) 
         "today": str(date.today()),
     }
 
-    url = f"{LLM_BASE_URL.rstrip('/')}/chat/completions"
-
-    payload = {
-        "model": LLM_MODEL_NAME,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": json.dumps(user_prompt, ensure_ascii=False)},
-        ],
-        "temperature": 0.1,
-        "max_tokens": 4096,
-    }
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {LLM_API_KEY}",
-    }
-
-    response = requests.post(url, headers=headers, json=payload, timeout=600)
-    response.raise_for_status()
-
-    content = response.json()["choices"][0]["message"]["content"]
+    content = call_llm(
+        system_prompt,
+        json.dumps(user_prompt, ensure_ascii=False),
+        temperature=0.1,
+        max_tokens=4096,
+    )
     return extract_json_from_text(content)
 
 
@@ -261,10 +243,6 @@ def generate_erd_json_from_requirement(requirement: Dict[str, Any], use_llm: boo
     print("[1] RAG 검색 시작")
     rag_context = build_erd_rag_context(requirement)
     print("[2] RAG 검색 완료")
-
-    Path("./json_temp").mkdir(exist_ok=True)
-    with open("./json_temp/erd_rag_context.json", "w", encoding="utf-8") as f:
-        json.dump(rag_context, f, ensure_ascii=False, indent=2)
 
     if use_llm:
         try:

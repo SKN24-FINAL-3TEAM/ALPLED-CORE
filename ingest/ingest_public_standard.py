@@ -13,7 +13,10 @@ from rag.qdrant_config import get_client, get_embedder, ensure_collection, COLLE
 
 load_dotenv()
 
-XLSX_PATH = os.getenv("PUBLIC_STANDARD_XLSX_PATH", "./data/공공데이터 공통표준(2025.11월).xlsx")
+XLSX_PATH = os.getenv(
+    "PUBLIC_STANDARD_XLSX_PATH",
+    "./data/terminology/공공데이터 공통표준(2025.11월).xlsx",
+)
 
 
 def normalize_text(text):

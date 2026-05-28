@@ -1,10 +1,19 @@
-from agents.erd_agent import generate_erd_json
-from generators.erd_docx_generator import generate_erd_docx
+from workflows.erd_workflow import compile_erd_graph
 
 
 def main():
-    erd = generate_erd_json(use_llm=True)
-    generate_erd_docx(erd, use_mermaid=True, fast_table=True)
+    app = compile_erd_graph()
+    result = app.invoke({
+        "use_llm": True,
+        "use_mermaid": True,
+        "fast_table": False,
+    })
+
+    if result.get("status") != "VALID":
+        raise RuntimeError(f"ERD 설계서 생성 실패: {result.get('validation_errors', [])}")
+
+    print("[완료] ERD JSON:", result.get("output_json_path"))
+    print("[완료] ERD 설계서:", result.get("erd_docx_path"))
 
 
 if __name__ == "__main__":

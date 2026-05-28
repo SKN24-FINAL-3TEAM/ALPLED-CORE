@@ -13,7 +13,10 @@ from rag.qdrant_config import get_client, get_embedder, ensure_collection, COLLE
 
 load_dotenv()
 
-PDF_PATH = os.getenv("DB_STANDARD_MANUAL_PATH", "./data/공공데이터베이스_표준화_관리_매뉴얼_202106.pdf")
+PDF_PATH = os.getenv(
+    "DB_STANDARD_MANUAL_PATH",
+    "./data/db_standards/공공데이터베이스_표준화_관리_매뉴얼_202106.pdf",
+)
 
 
 def normalize_text(text: str) -> str:
