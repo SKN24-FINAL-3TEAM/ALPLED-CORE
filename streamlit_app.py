@@ -193,6 +193,9 @@ def render_srs_tab() -> None:
     st.subheader("사용자 요구사항 정의서 생성/수정")
     mode = st.radio("실행 모드", ["신규 생성", "수정"], horizontal=True, key="srs_mode")
     save_docx = st.checkbox("DOCX 생성", value=True, key="srs_save_docx")
+    st.caption(
+        "DOCX 생성 시 아래 `출력 DOCX 경로`에 저장됩니다."
+    )
     output_json_path = st.text_input(
         "출력 JSON 경로",
         value=f"./json_temp/srs_agent_output_{_timestamp()}.json",
@@ -207,6 +210,11 @@ def render_srs_tab() -> None:
         "review_reqs 출력 경로",
         value="./output/review_reqs.json",
         key="srs_output_review_reqs",
+    )
+    output_docx_path = st.text_input(
+        "출력 DOCX 경로",
+        value=_docx_output_path("사용자 요구사항 정의서"),
+        key="srs_output_docx",
     )
 
     if mode == "신규 생성":
@@ -323,12 +331,18 @@ def render_srs_tab() -> None:
                 output_json_path=output_json_path,
                 output_reqs_path=output_reqs_path,
                 output_review_path=output_review_path,
+                output_docx_path=output_docx_path,
                 save_docx=save_docx,
             )
             with st.spinner("SRS 신규 생성 중입니다..."):
                 from main_generate_srs import generate_mode
 
-                result = generate_mode(args)
+                try:
+                    result = generate_mode(args)
+                except Exception as e:
+                    st.error("사용자 요구사항 정의서 생성 실패")
+                    st.exception(e)
+                    return
             st.success("사용자 요구사항 정의서 신규 생성 완료")
             st.write(
                 f"생성 요구사항: `{len(result.get('final_reqs', []))}`건 / "
@@ -338,10 +352,10 @@ def render_srs_tab() -> None:
             st.write(f"final_reqs: `{output_reqs_path}`")
             st.write(f"review_reqs: `{output_review_path}`")
             if result.get("docx_path"):
-                st.write(f"DOCX: `{result['docx_path']}`")
+                st.write(f"사용자 요구사항 정의서 DOCX 저장 위치: `{result['docx_path']}`")
                 _download_file(result["docx_path"], "사용자 요구사항 정의서 DOCX")
             elif save_docx:
-                st.warning("final_reqs가 비어 있어 DOCX를 생성하지 않았습니다.")
+                st.warning("final_reqs가 비어 있어 DOCX를 생성하지 않았습니다. 생성 성공 시 `./output/generated_YYYYMMDD_HHMMSS.docx`에 저장됩니다.")
             _download_file(output_json_path, "사용자 요구사항 정의서 JSON")
             _download_file(output_reqs_path, "사용자 요구사항 정의서 final_reqs")
             _download_file(output_review_path, "사용자 요구사항 정의서 review_reqs")
@@ -368,12 +382,18 @@ def render_srs_tab() -> None:
                 output_json_path=output_json_path,
                 output_reqs_path=output_reqs_path,
                 output_review_path=output_review_path,
+                output_docx_path=output_docx_path,
                 save_docx=save_docx,
             )
             with st.spinner("SRS 수정 중입니다..."):
                 from main_generate_srs import modify_mode
 
-                result = modify_mode(args)
+                try:
+                    result = modify_mode(args)
+                except Exception as e:
+                    st.error("사용자 요구사항 정의서 수정 실패")
+                    st.exception(e)
+                    return
             st.success("사용자 요구사항 정의서 수정 완료")
             st.write(
                 f"수정 요구사항: `{len(result.get('final_reqs', []))}`건 / "
@@ -383,10 +403,10 @@ def render_srs_tab() -> None:
             st.write(f"final_reqs: `{output_reqs_path}`")
             st.write(f"review_reqs: `{output_review_path}`")
             if result.get("docx_path"):
-                st.write(f"DOCX: `{result['docx_path']}`")
+                st.write(f"사용자 요구사항 정의서 DOCX 저장 위치: `{result['docx_path']}`")
                 _download_file(result["docx_path"], "사용자 요구사항 정의서 DOCX")
             elif save_docx:
-                st.warning("final_reqs가 비어 있어 DOCX를 생성하지 않았습니다.")
+                st.warning("final_reqs가 비어 있어 DOCX를 생성하지 않았습니다. 생성 성공 시 `./output/modified_YYYYMMDD_HHMMSS.docx`에 저장됩니다.")
             _download_file(output_json_path, "사용자 요구사항 정의서 수정 JSON")
             _download_file(output_reqs_path, "사용자 요구사항 정의서 final_reqs")
             _download_file(output_review_path, "사용자 요구사항 정의서 review_reqs")
