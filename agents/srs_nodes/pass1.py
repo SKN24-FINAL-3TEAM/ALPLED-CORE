@@ -1,5 +1,6 @@
 # nodes/pass1.py
 import logging
+import os
 
 from agents.srs_state import State
 from agents.srs_llm_service import LLMService
@@ -12,6 +13,11 @@ _CHUNK_SIZE = 10
 def pass1_node(state: State) -> dict:
     draft_reqs = []
     rfp = state["rfp"]
+    use_llm = os.getenv("SRS_PASS1_USE_LLM", "false").strip().lower() in {"1", "true", "yes", "y"}
+
+    if not use_llm:
+        logger.info("pass1: SRS_PASS1_USE_LLM=false, RFP 원문 기반으로 즉시 생성합니다.")
+        return {"draft_reqs": _fallback_requirements(rfp)}
 
     for idx in range(0, len(rfp), _CHUNK_SIZE):
         chunk = rfp[idx:idx + _CHUNK_SIZE]
