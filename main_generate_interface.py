@@ -6,7 +6,7 @@ def build_parser():
     parser.add_argument("--requirement-path", default=None)
     parser.add_argument("--image-path", default=None)
     parser.add_argument("--output-json-path", default="./json_temp/interface/ui_design_integrated.json")
-    parser.add_argument("--output-docx-path", default="./output/interface/사용자_인터페이스_설계서.docx")
+    parser.add_argument("--output-docx-path", default="./output/interface/사용자 인터페이스 설계서.docx")
     parser.add_argument("--work-dir", default="./json_temp/interface")
     parser.add_argument("--max-images", type=int, default=1)
     parser.add_argument(
@@ -37,8 +37,8 @@ def main():
     if result.get("status") != "VALID":
         raise RuntimeError("사용자 인터페이스 설계서 생성 실패")
 
-    print("[완료] 화면설계서 통합 JSON:", result.get("output_json_path"))
-    print("[완료] 화면설계서 DOCX:", result.get("output_docx_path"))
+    print("[완료] 사용자 인터페이스 설계서 통합 JSON:", result.get("output_json_path"))
+    print("[완료] 사용자 인터페이스 설계서 DOCX:", result.get("output_docx_path"))
     print("[요약] 화면 수:", len(result.get("screen_specs", [])))
 
 

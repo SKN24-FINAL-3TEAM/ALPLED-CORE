@@ -98,9 +98,9 @@ def generate_mode(args):
     if getattr(args, "output_review_path", None):
         print("[완료] SRS review_reqs:", args.output_review_path)
     if args.save_docx and result.get("docx_path"):
-        print("[완료] SRS DOCX:", result["docx_path"])
+        print("[완료] 사용자 요구사항 정의서 DOCX:", result["docx_path"])
     elif args.save_docx:
-        print("[건너뜀] SRS DOCX: final_reqs가 비어 있습니다.")
+        print("[건너뜀] 사용자 요구사항 정의서 DOCX: final_reqs가 비어 있습니다.")
 
     return result
 
@@ -146,9 +146,9 @@ def modify_mode(args):
     if getattr(args, "output_review_path", None):
         print("[완료] SRS review_reqs:", args.output_review_path)
     if args.save_docx and result.get("docx_path"):
-        print("[완료] SRS DOCX:", result["docx_path"])
+        print("[완료] 사용자 요구사항 정의서 DOCX:", result["docx_path"])
     elif args.save_docx:
-        print("[건너뜀] SRS DOCX: final_reqs가 비어 있습니다.")
+        print("[건너뜀] 사용자 요구사항 정의서 DOCX: final_reqs가 비어 있습니다.")
 
     return result
 
@@ -178,7 +178,7 @@ def build_parser():
     modify_parser.add_argument("--output-reqs-path", default=DEFAULT_FINAL_REQS_PATH)
     modify_parser.add_argument("--output-review-path", default=DEFAULT_REVIEW_REQS_PATH)
 
-    sample = sub.add_parser("sample", help="SRS DOCX 생성 단독 테스트")
+    sample = sub.add_parser("sample", help="사용자 요구사항 정의서 DOCX 생성 단독 테스트")
     sample.add_argument("--output-json-path", default=None)
 
     return parser

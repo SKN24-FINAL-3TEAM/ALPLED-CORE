@@ -17,7 +17,7 @@ except ImportError:
 
 load_dotenv()
 
-ERD_DOCX_PATH = os.getenv("ERD_DOCX_PATH", f"./output/ERD_설계서_{date.today()}.docx")
+ERD_DOCX_PATH = os.getenv("ERD_DOCX_PATH", f"./output/엔티티 관계 모형 설계서_{date.today()}.docx")
 OUTPUT_JSON_PATH = os.getenv("DB_DESIGN_JSON_PATH", "./json_temp/database_design_agent_output.json")
 
 
@@ -33,7 +33,7 @@ def cell_text(row, idx: int) -> str:
 
 def find_latest_erd_docx(output_dir: str = "./output") -> Optional[str]:
     paths = sorted(
-        Path(output_dir).glob("ERD_설계서*.docx"),
+        Path(output_dir).glob("엔티티 관계 모형 설계서*.docx"),
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )

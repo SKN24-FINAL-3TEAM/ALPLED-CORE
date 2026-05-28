@@ -34,6 +34,6 @@ MAX_NEW_TOKENS_FINAL = int(os.getenv("INTERFACE_MAX_NEW_TOKENS_FINAL", "1024"))
 OUTPUT_DOCX_PATH = Path(
     os.getenv(
         "INTERFACE_OUTPUT_DOCX_PATH",
-        str(OUTPUT_DIR / "사용자_인터페이스_설계서.docx"),
+        str(OUTPUT_DIR / "사용자 인터페이스 설계서.docx"),
     )
 )

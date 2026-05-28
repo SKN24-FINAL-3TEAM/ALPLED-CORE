@@ -7,7 +7,7 @@ from pathlib import Path
 
 import requests
 
-from agents.arch_nodes.common import strip_mermaid_block
+from agents.arch_nodes.common import normalize_mermaid_syntax, strip_mermaid_block
 from generators.erd_docx_generator import find_puppeteer_browser
 
 
@@ -22,7 +22,7 @@ def render_mermaid_image(
     mmd_path.parent.mkdir(parents=True, exist_ok=True)
     image_path.parent.mkdir(parents=True, exist_ok=True)
 
-    clean_script = strip_mermaid_block(mermaid_script)
+    clean_script = normalize_mermaid_syntax(mermaid_script)
     mmd_path.write_text(clean_script, encoding="utf-8")
 
     if not clean_script:
