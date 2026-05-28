@@ -295,7 +295,7 @@ def generate_erd_docx(
     output_path: str = OUTPUT_PATH,
     *,
     use_mermaid: bool = True,
-    fast_table: bool = True,
+    fast_table: bool = False,
 ):
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 

@@ -28,6 +28,8 @@ def generate_architecture_report_node(state: ArchitectureWorkflowState) -> Archi
     result = generate_architecture_report(
         report_specs=state.get("report_specs", ""),
         mermaid_script=state.get("mermaid_script", ""),
+        user_infra_spec=state.get("user_infra_spec", {}),
+        extracted_infra=state.get("extracted_infra", {}),
         output_md_path=state.get("output_md_path") or "./output/architecture_report.md",
         output_docx_path=state.get("output_docx_path") or "./output/architecture_report.docx",
         output_image_path=state.get("output_image_path") or "./output/architecture_diagram.png",
@@ -39,4 +41,3 @@ def generate_architecture_report_node(state: ArchitectureWorkflowState) -> Archi
         "output_image_path": result.get("image_path"),
         "status": "VALID",
     }
-

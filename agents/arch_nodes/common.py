@@ -23,6 +23,7 @@ def extract_json(value: str) -> Any:
 
 def strip_mermaid_block(value: str) -> str:
     text = str(value or "").strip()
+    text = re.sub(r"^`{1,3}\s*mermaid\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"`{1,3}\s*$", "", text)
     text = text.replace("```mermaid", "").replace("```", "")
     return text.strip()
-

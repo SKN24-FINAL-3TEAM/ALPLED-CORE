@@ -3,7 +3,6 @@ from workflows.architecture_state import ArchitectureWorkflowState
 
 def validate_mermaid_node(state: ArchitectureWorkflowState) -> ArchitectureWorkflowState:
     script = state.get("mermaid_script", "")
-    retry_count = state.get("retry_count", 0)
     errors = []
 
     if "```mermaid" not in script:
@@ -17,7 +16,6 @@ def validate_mermaid_node(state: ArchitectureWorkflowState) -> ArchitectureWorkf
     if errors:
         return {
             "validation_result": {"status": "FAIL", "errors": errors},
-            "retry_count": retry_count + 1,
             "status": "INVALID_MERMAID",
         }
 
@@ -25,4 +23,3 @@ def validate_mermaid_node(state: ArchitectureWorkflowState) -> ArchitectureWorkf
         "validation_result": {"status": "PASS", "errors": []},
         "status": "VALID_MERMAID",
     }
-
