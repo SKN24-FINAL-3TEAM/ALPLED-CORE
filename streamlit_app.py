@@ -1,4 +1,5 @@
 import json
+import json
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -541,6 +542,10 @@ def render_arch_tab() -> None:
 
             result = compile_architecture_graph().invoke(initial_state)
 
+        st.session_state["arch_last_result"] = result
+
+    result = st.session_state.get("arch_last_result")
+    if result:
         if result.get("status") != "VALID":
             st.error("아키텍처 설계서 생성 실패")
             st.write(result.get("validation_result", {}))
