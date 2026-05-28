@@ -15,6 +15,7 @@ def run_case(case: dict[str, Any]) -> dict[str, Any]:
     output_reqs_path = out_dir / f"{case_id}_{ts}_srs_final_reqs.json"
 
     mode = case.get("mode", "generate")
+    save_docx = bool(case.get("save_docx", True))
 
     if mode == "modify":
         args = SimpleNamespace(
@@ -23,26 +24,27 @@ def run_case(case: dict[str, Any]) -> dict[str, Any]:
             instruction_file=resolve_path(case.get("instruction_file")),
             output_json_path=str(output_json_path),
             output_reqs_path=str(output_reqs_path),
-            save_docx=bool(case.get("save_docx", False)),
+            save_docx=save_docx,
         )
-        modify_mode(args)
+        result = modify_mode(args)
     else:
         args = SimpleNamespace(
             rfp_json_path=resolve_path(case.get("rfp_json_path")),
             minutes_path=resolve_path(case.get("minutes_path")),
             output_json_path=str(output_json_path),
             output_reqs_path=str(output_reqs_path),
-            save_docx=bool(case.get("save_docx", False)),
+            save_docx=save_docx,
         )
-        generate_mode(args)
+        result = generate_mode(args)
 
     return {
         "status": "VALID",
         "output_json_path": str(output_json_path),
-        "output_docx_path": "",
+        "output_docx_path": result.get("docx_path") or "",
         "validation_errors": [],
         "raw_result": {
             "output_json_path": str(output_json_path),
             "output_reqs_path": str(output_reqs_path),
+            "docx_path": result.get("docx_path"),
         },
     }
