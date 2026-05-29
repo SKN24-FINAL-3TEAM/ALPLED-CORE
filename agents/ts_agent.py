@@ -6,16 +6,24 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from agents.ts_prompt import FEW_SHOT_INPUT, FEW_SHOT_OUTPUT, SYSTEM_PROMPT, build_prompt
+from agents.ts_prompt import SYSTEM_PROMPT, build_prompt
 from services.llm_client import call_llm_messages
 
-TS_MAX_TOKENS = int(os.getenv("TS_MAX_TOKENS", "1536"))
+TS_MAX_TOKENS = int(os.getenv("TS_MAX_TOKENS", "2048"))
 TS_RAW_OUTPUT_DIR = os.getenv("TS_RAW_OUTPUT_DIR", "./json_temp/ts_raw_outputs")
-TS_REQUIREMENT_MAX_CHARS = int(os.getenv("TS_REQUIREMENT_MAX_CHARS", "3500"))
-TS_FIELD_MAX_CHARS = int(os.getenv("TS_FIELD_MAX_CHARS", "1000"))
+TS_REQUIREMENT_MAX_CHARS = int(os.getenv("TS_REQUIREMENT_MAX_CHARS", "1800"))
+TS_FIELD_MAX_CHARS = int(os.getenv("TS_FIELD_MAX_CHARS", "500"))
 TS_USE_COMPACT_PROMPT = os.getenv("TS_USE_COMPACT_PROMPT", "true").strip().lower() in {"1", "true", "yes", "y"}
 
 _DROP_KEYS = {"raw_text", "full_text", "page_text", "chunks", "tables", "pages", "embedding", "vector"}
+
+
+def _stable_requirement_id(requirement: dict[str, Any], index: int) -> str:
+    raw_id = requirement.get("requirement_id") or requirement.get("id") or requirement.get("code")
+    requirement_id = str(raw_id or "").strip()
+    if not requirement_id or len(requirement_id) > 80 or "\n" in requirement_id:
+        return f"REQ-{index:03d}"
+    return requirement_id
 
 
 def _strip_markdown_json(raw_output: str) -> str:
@@ -80,6 +88,8 @@ def compact_requirement_for_ts(requirement: dict[str, Any]) -> dict[str, Any]:
         for key in preferred_keys
         if key in requirement
     }
+    if "requirement_id" in compacted:
+        compacted["requirement_id"] = _truncate_text(compacted["requirement_id"], 80)
     if len(json.dumps(compacted, ensure_ascii=False)) <= TS_REQUIREMENT_MAX_CHARS:
         return compacted
 
@@ -92,7 +102,7 @@ def compact_requirement_for_ts(requirement: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_compact_prompt(requirement_json: str, ui_screens: list[str] | None = None) -> list[dict[str, str]]:
-    """원본 few-shot 예시는 유지하되 vLLM 8k context에 맞게 실제 입력과 예시를 줄인다."""
+    """vLLM 8k context에서 JSON 스키마 준수율을 높이기 위한 축약 프롬프트."""
     req_data = json.loads(requirement_json)
     if ui_screens:
         full_messages = build_prompt(requirement_json, ui_screens)
@@ -101,35 +111,61 @@ def build_compact_prompt(requirement_json: str, ui_screens: list[str] | None = N
         actual_input = requirement_json.strip()
 
     return [
-        {"role": "user", "content": _compact_few_shot_input()},
-        {"role": "assistant", "content": _compact_few_shot_output()},
+        {"role": "user", "content": _compact_generation_instruction()},
         {"role": "user", "content": actual_input},
     ]
 
 
-def _compact_few_shot_input() -> str:
-    data = json.loads(FEW_SHOT_INPUT)
-    requirement = data["requirements"][0]
-    requirement["description"] = _truncate_text(requirement.get("description"), 600)
-    requirement["source"] = requirement.get("source", [])[:1]
-    requirement["constraints"] = requirement.get("constraints", [])[:2]
-    requirement["validation_criteria"] = requirement.get("validation_criteria", [])[:2]
-    data["ui_screens"] = data.get("ui_screens", [])[:1]
-    return json.dumps(data, ensure_ascii=False, indent=2)
+def _compact_generation_instruction() -> str:
+    return """
+입력 requirements 1개에 대해 통합시험 시나리오 JSON만 생성하라.
+반드시 아래 구조의 JSON 객체만 출력하고, 설명/마크다운은 금지한다.
 
+필수 규칙:
+- scenarios는 1개 이상 생성한다.
+- 각 scenario.test_cases는 정상/경계값/예외 케이스를 포함한다.
+- test_cases[*].test_procedure의 각 절차마다 cases 행을 1개씩 생성한다.
+- cases[*].input_data는 반드시 문자열이다.
+- cases[*].test_result는 반드시 null이다.
+- UI 화면이 없으면 screen_id는 ""로 둔다.
 
-def _compact_few_shot_output() -> str:
-    data = json.loads(FEW_SHOT_OUTPUT)
-    scenario = data["scenarios"][0]
-    scenario["test_cases"] = scenario.get("test_cases", [])[:2]
-    keep_case_ids = {case["test_case_id"] for case in scenario["test_cases"]}
-    data["scenarios"] = [scenario]
-    data["cases"] = [
-        case
-        for case in data.get("cases", [])
-        if case.get("test_case_id") in keep_case_ids
-    ][:5]
-    return json.dumps(data, ensure_ascii=False, indent=2)
+출력 예시:
+{
+  "scenarios": [
+    {
+      "scenario_id": "TS-001",
+      "scenario_name": "요구사항명 통합시험",
+      "scenario_description": "요구사항의 정상 처리와 예외 처리를 검증한다.",
+      "test_cases": [
+        {
+          "test_case_id": "TC-001",
+          "test_case_description": "정상 처리",
+          "test_procedure": ["사전조건 확인", "기능 수행", "결과 확인"],
+          "scenario_detail": "정상 입력으로 기능이 처리되는지 확인한다.",
+          "note": null
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "round": 1,
+      "scenario_id": "TS-001",
+      "scenario_name": "요구사항명 통합시험",
+      "test_case_id": "TC-001",
+      "sequence": 1,
+      "process_content": "사전조건 확인",
+      "test_item": "사전조건 확인",
+      "precondition": null,
+      "input_data": "화면 확인",
+      "expected_result": "사전조건이 충족된다.",
+      "screen_id": "",
+      "test_result": null,
+      "note": null
+    }
+  ]
+}
+""".strip()
 
 
 def parse_and_validate(raw_output: str) -> tuple[dict[str, Any] | None, str]:
@@ -257,6 +293,7 @@ def save_raw_output(requirement_id: str, raw_output: str) -> str:
     output_dir = Path(TS_RAW_OUTPUT_DIR)
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_id = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in requirement_id)
+    safe_id = safe_id[:80] or "unknown"
     output_path = output_dir / f"{safe_id}_raw_output.txt"
     output_path.write_text(raw_output, encoding="utf-8")
     return str(output_path)
@@ -274,10 +311,11 @@ def generate_test_scenarios(
     errors: list[dict[str, str]] = []
 
     for index, requirement in enumerate(requirements, start=1):
-        requirement_id = requirement.get("requirement_id", f"REQ-{index}")
+        requirement_id = _stable_requirement_id(requirement, index)
         print(f"\n[INFO] [{index}/{len(requirements)}] {requirement_id} 처리 중...")
 
         compacted_requirement = compact_requirement_for_ts(requirement)
+        compacted_requirement["requirement_id"] = requirement_id
         single_req_json = json.dumps({"requirements": [compacted_requirement]}, ensure_ascii=False, indent=2)
         if TS_USE_COMPACT_PROMPT:
             messages = build_compact_prompt(single_req_json, ui_screens_raw)
@@ -308,13 +346,12 @@ def generate_test_scenarios(
             raw_path = save_raw_output(str(requirement_id), raw_output)
             print(f"[FAIL] {requirement_id} 검증 실패: {last_error}")
             print(f"[INFO] raw output 저장됨: {raw_path}")
-            full_messages.append({"role": "assistant", "content": raw_output})
-            full_messages.append(
+            full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages + [
                 {
                     "role": "user",
-                    "content": f"위 응답은 오류가 있습니다: {last_error}. 스키마에 맞는 JSON만 다시 출력하세요.",
+                    "content": f"직전 응답 오류: {last_error}. 전체 JSON을 처음부터 다시 출력하세요.",
                 }
-            )
+            ]
 
         if not parsed:
             errors.append({"requirement_id": requirement_id, "error": last_error})
@@ -329,7 +366,7 @@ def generate_test_scenarios(
         "scenarios": all_scenarios,
         "cases": all_cases,
         "errors": errors,
-        "summary": summarize_test_scenarios({"scenarios": all_scenarios, "cases": all_cases}),
+        "summary": summarize_test_scenarios({"scenarios": all_scenarios, "cases": all_cases, "errors": errors}),
     }
 
 
@@ -338,5 +375,6 @@ def summarize_test_scenarios(data: dict[str, Any]) -> dict[str, Any]:
     return {
         "scenario_count": len(data.get("scenarios", [])),
         "case_row_count": len(data.get("cases", [])),
+        "error_count": len(data.get("errors", [])),
         "case_rows_by_test_case": dict(counter),
     }
