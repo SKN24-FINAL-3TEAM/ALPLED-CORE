@@ -584,7 +584,7 @@ def render_ts_tab() -> None:
         help="여러 개면 줄바꿈으로 입력합니다.",
         key="ts_ui_paths",
     )
-    max_retries = st.number_input("요구사항별 재시도 횟수", min_value=0, max_value=5, value=1, step=1)
+    max_retries = st.number_input("요구사항별 재시도 횟수", min_value=0, max_value=5, value=0, step=1)
     output_json_path = st.text_input(
         "출력 JSON 경로",
         value=f"./json_temp/ts_agent_output_{_timestamp()}.json",

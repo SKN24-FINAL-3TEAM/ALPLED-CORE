@@ -1,17 +1,15 @@
 import json
 import os
-import re
 import time
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
-from agents.ts_prompt import build_prompt
+from agents.ts_prompt import SYSTEM_PROMPT, build_prompt
 from services.llm_client import call_llm_messages
 
-TS_FIELD_MAX_CHARS = int(os.getenv("TS_FIELD_MAX_CHARS", "2500"))
-TS_LIST_ITEM_MAX_CHARS = int(os.getenv("TS_LIST_ITEM_MAX_CHARS", "800"))
-TS_REQUIREMENT_MAX_CHARS = int(os.getenv("TS_REQUIREMENT_MAX_CHARS", "8000"))
-TS_MAX_TOKENS = int(os.getenv("TS_MAX_TOKENS", "4096"))
+TS_MAX_TOKENS = int(os.getenv("TS_MAX_TOKENS", "16384"))
+TS_RAW_OUTPUT_DIR = os.getenv("TS_RAW_OUTPUT_DIR", "./json_temp/ts_raw_outputs")
 
 
 def _strip_markdown_json(raw_output: str) -> str:
@@ -21,72 +19,7 @@ def _strip_markdown_json(raw_output: str) -> str:
         text = "\n".join(lines[1:])
     if text.endswith("```"):
         text = text[:-3].strip()
-
-    if not text.startswith("{"):
-        match = re.search(r"\{.*\}", text, flags=re.DOTALL)
-        if match:
-            text = match.group(0)
     return text
-
-
-def _truncate_text(value: Any, max_chars: int) -> str:
-    text = str(value or "").strip()
-    if len(text) <= max_chars:
-        return text
-    return text[:max_chars].rstrip() + "\n...(입력 길이 제한으로 일부 생략)"
-
-
-def _compact_value(value: Any, max_chars: int = TS_FIELD_MAX_CHARS) -> Any:
-    if isinstance(value, str):
-        return _truncate_text(value, max_chars)
-    if isinstance(value, list):
-        compacted = []
-        total_chars = 0
-        for item in value:
-            compacted_item = _compact_value(item, TS_LIST_ITEM_MAX_CHARS)
-            item_size = len(json.dumps(compacted_item, ensure_ascii=False))
-            if total_chars + item_size > max_chars:
-                compacted.append("...(입력 길이 제한으로 나머지 항목 생략)")
-                break
-            compacted.append(compacted_item)
-            total_chars += item_size
-        return compacted
-    if isinstance(value, dict):
-        return {
-            key: _compact_value(item, max_chars)
-            for key, item in value.items()
-            if key not in {"raw_text", "page_text", "full_text", "chunks", "tables"}
-        }
-    return value
-
-
-def compact_requirement_for_ts(requirement: dict[str, Any]) -> dict[str, Any]:
-    preferred_keys = [
-        "requirement_id",
-        "requirement_name",
-        "requirement_type",
-        "description",
-        "constraints",
-        "validation_criteria",
-        "priority",
-        "source",
-    ]
-    compacted = {
-        key: _compact_value(requirement.get(key))
-        for key in preferred_keys
-        if key in requirement
-    }
-    payload = json.dumps(compacted, ensure_ascii=False)
-    if len(payload) <= TS_REQUIREMENT_MAX_CHARS:
-        return compacted
-
-    for key in ["source", "constraints", "validation_criteria", "description"]:
-        if key in compacted:
-            compacted[key] = _compact_value(compacted[key], max(TS_FIELD_MAX_CHARS // 2, 1000))
-        payload = json.dumps(compacted, ensure_ascii=False)
-        if len(payload) <= TS_REQUIREMENT_MAX_CHARS:
-            break
-    return compacted
 
 
 def parse_and_validate(raw_output: str) -> tuple[dict[str, Any] | None, str]:
@@ -126,14 +59,27 @@ def parse_and_validate(raw_output: str) -> tuple[dict[str, Any] | None, str]:
             if key not in case:
                 return None, f"cases[{i}] 필수 키 누락: '{key}'"
         if case.get("test_result") is not None:
-            return None, f"cases[{i}].test_result는 설계 단계에서 null이어야 합니다."
+            return None, f"cases[{i}].test_result는 설계단계에서 null이어야 합니다. (hallucination 감지)"
         if not isinstance(case.get("input_data"), str):
-            return None, f"cases[{i}].input_data는 문자열이어야 합니다."
+            return None, f"cases[{i}].input_data는 문자열이어야 합니다. (현재: {type(case.get('input_data')).__name__})"
+
+    for scenario in data["scenarios"]:
+        for test_case in scenario["test_cases"]:
+            test_case_id = test_case["test_case_id"]
+            procedure_count = len(test_case["test_procedure"])
+            case_count = sum(1 for case in data["cases"] if case["test_case_id"] == test_case_id)
+            if procedure_count != case_count:
+                print(
+                    f"[WARN] {test_case_id}: test_procedure 항목 수({procedure_count})와 "
+                    f"cases 행 수({case_count})가 일치하지 않습니다."
+                )
 
     return data, ""
 
 
 def fill_missing_cases(data: dict[str, Any]) -> dict[str, Any]:
+    filled_count = 0
+
     for scenario in data["scenarios"]:
         scenario_id = scenario["scenario_id"]
         scenario_name = scenario["scenario_name"]
@@ -171,16 +117,32 @@ def fill_missing_cases(data: dict[str, Any]) -> dict[str, Any]:
                         "note": "자동 보완된 행입니다. 내용을 검토하고 수정하세요.",
                     }
                 )
+                filled_count += 1
+                print(f"[FIX] {test_case_id} sequence {sequence} 자동 보완")
 
-    data["cases"].sort(key=lambda case: (case["scenario_id"], case["test_case_id"], case["sequence"]))
+    if filled_count > 0:
+        data["cases"].sort(key=lambda case: (case["scenario_id"], case["test_case_id"], case["sequence"]))
+        print(f"[INFO] 총 {filled_count}개 행 자동 보완 완료")
+    else:
+        print("[INFO] cases 누락 없음. 자동 보완 불필요.")
+
     return data
+
+
+def save_raw_output(requirement_id: str, raw_output: str) -> str:
+    output_dir = Path(TS_RAW_OUTPUT_DIR)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    safe_id = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in requirement_id)
+    output_path = output_dir / f"{safe_id}_raw_output.txt"
+    output_path.write_text(raw_output, encoding="utf-8")
+    return str(output_path)
 
 
 def generate_test_scenarios(
     requirement_doc: dict[str, Any],
     ui_screens_raw: list[str] | None = None,
     *,
-    max_retries: int = 1,
+    max_retries: int = 0,
 ) -> dict[str, Any]:
     requirements = requirement_doc.get("requirements", [])
     all_scenarios: list[dict[str, Any]] = []
@@ -189,9 +151,11 @@ def generate_test_scenarios(
 
     for index, requirement in enumerate(requirements, start=1):
         requirement_id = requirement.get("requirement_id", f"REQ-{index}")
-        compacted_requirement = compact_requirement_for_ts(requirement)
-        single_req_json = json.dumps({"requirements": [compacted_requirement]}, ensure_ascii=False, indent=2)
+        print(f"\n[INFO] [{index}/{len(requirements)}] {requirement_id} 처리 중...")
+
+        single_req_json = json.dumps({"requirements": [requirement]}, ensure_ascii=False, indent=2)
         messages = build_prompt(single_req_json, ui_screens_raw)
+        full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
 
         parsed = None
         last_error = ""
@@ -199,8 +163,8 @@ def generate_test_scenarios(
         for _ in range(max_retries + 1):
             try:
                 raw_output = call_llm_messages(
-                    messages,
-                    temperature=0.2,
+                    full_messages,
+                    temperature=0,
                     max_tokens=TS_MAX_TOKENS,
                     timeout=600,
                 )
@@ -211,8 +175,11 @@ def generate_test_scenarios(
             parsed, last_error = parse_and_validate(raw_output)
             if not last_error and parsed:
                 break
-            messages.append({"role": "assistant", "content": raw_output})
-            messages.append(
+            raw_path = save_raw_output(str(requirement_id), raw_output)
+            print(f"[FAIL] {requirement_id} 검증 실패: {last_error}")
+            print(f"[INFO] raw output 저장됨: {raw_path}")
+            full_messages.append({"role": "assistant", "content": raw_output})
+            full_messages.append(
                 {
                     "role": "user",
                     "content": f"위 응답은 오류가 있습니다: {last_error}. 스키마에 맞는 JSON만 다시 출력하세요.",
