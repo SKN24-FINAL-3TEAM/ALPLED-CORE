@@ -8,7 +8,7 @@ from typing import Any
 from agents.ts_prompt import SYSTEM_PROMPT, build_prompt
 from services.llm_client import call_llm_messages
 
-TS_MAX_TOKENS = int(os.getenv("TS_MAX_TOKENS", "16384"))
+TS_MAX_TOKENS = int(os.getenv("TS_MAX_TOKENS", "2048"))
 TS_RAW_OUTPUT_DIR = os.getenv("TS_RAW_OUTPUT_DIR", "./json_temp/ts_raw_outputs")
 
 
@@ -32,15 +32,27 @@ def parse_and_validate(raw_output: str) -> tuple[dict[str, Any] | None, str]:
         return None, "필수 키 누락: 'scenarios'"
     if "cases" not in data:
         return None, "필수 키 누락: 'cases'"
+    if not isinstance(data.get("scenarios"), list) or not data["scenarios"]:
+        return None, "scenarios는 1개 이상이어야 합니다."
+    if not isinstance(data.get("cases"), list) or not data["cases"]:
+        return None, "cases는 1개 이상이어야 합니다."
 
     for i, scenario in enumerate(data["scenarios"]):
+        if not isinstance(scenario, dict):
+            return None, f"scenarios[{i}]는 객체여야 합니다."
         for key in ["scenario_id", "scenario_name", "scenario_description", "test_cases"]:
             if key not in scenario:
                 return None, f"scenarios[{i}] 필수 키 누락: '{key}'"
+        if not isinstance(scenario.get("test_cases"), list) or not scenario["test_cases"]:
+            return None, f"scenarios[{i}].test_cases는 1개 이상이어야 합니다."
         for j, test_case in enumerate(scenario["test_cases"]):
+            if not isinstance(test_case, dict):
+                return None, f"scenarios[{i}].test_cases[{j}]는 객체여야 합니다."
             for key in ["test_case_id", "test_case_description", "test_procedure", "scenario_detail"]:
                 if key not in test_case:
                     return None, f"scenarios[{i}].test_cases[{j}] 필수 키 누락: '{key}'"
+            if not isinstance(test_case.get("test_procedure"), list) or not test_case["test_procedure"]:
+                return None, f"scenarios[{i}].test_cases[{j}].test_procedure는 1개 이상이어야 합니다."
 
     required_case_keys = [
         "round",
@@ -55,6 +67,8 @@ def parse_and_validate(raw_output: str) -> tuple[dict[str, Any] | None, str]:
         "screen_id",
     ]
     for i, case in enumerate(data["cases"]):
+        if not isinstance(case, dict):
+            return None, f"cases[{i}]는 객체여야 합니다."
         for key in required_case_keys:
             if key not in case:
                 return None, f"cases[{i}] 필수 키 누락: '{key}'"

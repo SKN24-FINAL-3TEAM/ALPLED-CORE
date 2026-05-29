@@ -616,6 +616,8 @@ def render_ts_tab() -> None:
 
         if result.get("status") != "VALID":
             st.error("통합 시험 시나리오 생성 실패")
+            st.write(result.get("validation_errors", []))
+            _show_result_paths(result, [("output_json_path", "통합 시험 시나리오 JSON")])
             return
         st.success("통합 시험 시나리오 생성 완료")
         st.write("요약:", result.get("summary", {}))
