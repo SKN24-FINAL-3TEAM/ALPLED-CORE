@@ -13,7 +13,7 @@ def pass2_node(state: State) -> dict:
 
     for chunk_index, draft_chunk in enumerate(chunk_items(state["draft_reqs"]), start=1):
         related_rfp = _select_related_rfp(draft_chunk, rfp_lookup)
-        print(f"[SRS pass2] chunk {chunk_index}: {len(draft_chunk)} requirements")
+        print(f"[SRS pass2] chunk {chunk_index}: {len(draft_chunk)} requirements", flush=True)
         result = llm.complete_json(
             REFINE_SYSTEM,
             build_pass2_prompt(

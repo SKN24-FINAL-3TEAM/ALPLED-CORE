@@ -11,7 +11,7 @@ def pass1_node(state: State) -> dict:
     rag_context = compact_text(state["rag_context"])
 
     for chunk_index, rfp_chunk in enumerate(chunk_items(state["rfp"]), start=1):
-        print(f"[SRS pass1] chunk {chunk_index}: {len(rfp_chunk)} requirements")
+        print(f"[SRS pass1] chunk {chunk_index}: {len(rfp_chunk)} requirements", flush=True)
         result = llm.complete_json(
             GENERATION_SYSTEM,
             build_pass1_prompt(rfp_chunk, cleaned_minutes, rag_context),

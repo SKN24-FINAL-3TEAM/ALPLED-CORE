@@ -10,7 +10,7 @@ def analyze_node(state: State) -> dict:
     cleaned_minutes = compact_text(state["cleaned_minutes"])
 
     for chunk_index, rfp_chunk in enumerate(chunk_items(state["rfp"]), start=1):
-        print(f"[SRS analyze] chunk {chunk_index}: {len(rfp_chunk)} requirements")
+        print(f"[SRS analyze] chunk {chunk_index}: {len(rfp_chunk)} requirements", flush=True)
         result = llm.complete_json(
             ANALYZE_SYSTEM,
             build_analyze_prompt(rfp_chunk, cleaned_minutes),
